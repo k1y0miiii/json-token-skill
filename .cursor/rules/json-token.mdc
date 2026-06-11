@@ -1,0 +1,25 @@
+---
+description: Read large JSON as compact JTF to save context tokens
+globs:
+  - "**/*.json"
+alwaysApply: false
+---
+
+For large JSON files (arrays of records, logs, API dumps, big configs), convert to
+JTF before reading them into context — it is a lossless, more token-efficient form of
+the same data:
+
+    python3 jtf.py encode path/to/file.json
+
+Read the JTF output instead of the raw JSON. To go back: `python3 jtf.py decode file.jtf`.
+Editing: change the real `.json` file as usual — JTF is only for reading.
+
+How to read JTF: `key=value` is a field; `key:` + indented lines is a nested object;
+`#N k1 k2` + tab-separated rows is an array of N uniform objects (dotted keys like
+`a.b` mean nesting); `[N] a,b,c` is a primitive array; a leading `#dict:` block defines
+`$0`, `$1`… aliases for repeated values.
+
+Spec and converter: github.com/k1y0miiii/json-token-format
+
+Note: Cursor's rule file format changes between versions. If this `.mdc` is not picked
+up, paste the guidance above into an `AGENTS.md` or a project rule instead.
