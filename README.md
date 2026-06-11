@@ -1,35 +1,37 @@
 # json-token-skill
 
-Claude Code skill and hook that make the agent read JSON as JTF — a lossless, compact
-form that uses fewer tokens. Companion to
-[json-token-format](https://github.com/k1y0miiii/json-token-format) (the converter and
-spec).
+English version: [README.en.md](README.en.md).
 
-There are two parts; install one or both.
+Скилл и хук для Claude Code, чтобы агент читал JSON в формате JTF — компактном и без
+потерь, который тратит меньше токенов. Дополнение к
+[json-token-format](https://github.com/k1y0miiii/json-token-format) (конвертер и
+спецификация).
 
-## 1. Hook — automatic conversion on read
+Две части, можно ставить любую или обе.
 
-A `PostToolUse` hook on the `Read` tool. When the agent reads a `.json` file, the hook
-converts the content to JTF and substitutes it as the tool result the agent sees
-(`hookSpecificOutput.updatedToolOutput`). The agent gets the compact version, so the
-raw JSON never enters the context window.
+## 1. Хук — автоматическая конвертация при чтении
 
-Safeguards built into the hook:
-- Only files ending in `.json`, and only when larger than 1 KB.
-- The conversion is verified lossless (`decode(encode(x)) == x`) before substituting;
-  if not, the raw JSON is left untouched.
-- If the JTF is not actually shorter than the JSON, no substitution happens.
-- Any error exits quietly — a hook failure never breaks reading a file.
+`PostToolUse`-хук на инструмент `Read`. Когда агент читает `.json`, хук конвертирует
+содержимое в JTF и подменяет результат, который видит агент
+(`hookSpecificOutput.updatedToolOutput`). В контекст попадает компактная версия —
+сырой JSON туда не уходит.
 
-Install (default target `~/.claude`):
+Встроенные предохранители:
+- только файлы `.json` и только крупнее 1 КБ;
+- конвертация проверяется на обратимость (`decode(encode(x)) == x`) до подмены; если
+  не лосслесс — сырой JSON остаётся как есть;
+- если JTF не короче JSON — подмены нет;
+- любая ошибка завершается тихо: сбой хука никогда не ломает чтение файла.
+
+Установка (по умолчанию в `~/.claude`):
 
 ```sh
 ./install.sh
 ```
 
-It copies the skill to `~/.claude/skills/json-token-format/`, the hook to
-`~/.claude/hooks/`, then prints the `hooks` block to add to `~/.claude/settings.json`.
-Merge it with any hooks you already have:
+Скрипт копирует скилл в `~/.claude/skills/json-token-format/`, хук в `~/.claude/hooks/`
+и печатает блок `hooks`, который нужно добавить в `~/.claude/settings.json`. Объедините
+его с теми хуками, что уже есть:
 
 ```json
 {
@@ -42,27 +44,26 @@ Merge it with any hooks you already have:
 }
 ```
 
-The hook starts working in the next session. For a single project instead of globally,
-put the same block in the project's `.claude/settings.json` and point the command at
-the hook wherever you keep it.
+Хук начнёт работать в следующей сессии. Чтобы включить не глобально, а для одного
+проекта, положите тот же блок в `.claude/settings.json` проекта и укажите путь к хуку.
 
-## 2. Skill — teaches the agent to read JTF and convert by hand
+## 2. Скилл — учит агента читать JTF и конвертировать вручную
 
-`skill/SKILL.md` is a Claude Code skill. It explains how to read JTF and how to run the
-converter, so the agent can convert large JSON itself even without the hook. `install.sh`
-copies it to `~/.claude/skills/`.
+`skill/SKILL.md` — это скилл Claude Code. Он объясняет, как читать JTF и как запускать
+конвертер, чтобы агент сам сжимал большой JSON даже без хука. `install.sh` копирует
+его в `~/.claude/skills/`.
 
 ## Cursor
 
-Cursor has no hook system. Use the rule in `.cursor/rules/json-token.mdc`: it tells the
-agent to convert large JSON with `python3 jtf.py encode file.json` and read the JTF.
-Cursor's rule format changes between versions — if the `.mdc` is not picked up, paste
-the guidance into `AGENTS.md` instead.
+В Cursor хуков нет. Используйте правило `.cursor/rules/json-token.mdc`: оно говорит
+агенту сжимать большой JSON через `python3 jtf.py encode file.json` и читать JTF.
+Формат правил Cursor меняется между версиями — если `.mdc` не подхватился, перенесите
+текст в `AGENTS.md`.
 
-## What JTF looks like
+## Как выглядит JTF
 
 ```
-name=example
+name=пример
 count=3
 items:
   #3 id status
@@ -71,15 +72,15 @@ items:
       3   active
 ```
 
-The same data in JSON is longer in tokens. Full spec, grammar, and benchmark:
-[json-token-format](https://github.com/k1y0miiii/json-token-format).
+Те же данные в JSON занимают больше токенов. Полная спецификация, грамматика и бенчмарк
+— в [json-token-format](https://github.com/k1y0miiii/json-token-format).
 
-## Limitations
+## Ограничения
 
-- The hook changes only what `Read` shows. Editing works on the real JSON file
-  (`Edit`/`Write` are unaffected) — so if you edit a JSON you just read as JTF, match
-  against the actual JSON, not the JTF view.
-- JTF pays off on large or repetitive JSON. On small or all-unique documents the hook
-  detects there is no gain and leaves the JSON as is.
-- `hookSpecificOutput.updatedToolOutput` requires a recent Claude Code version. If your
-  version does not support it, use the skill (part 2) and convert manually.
+- Хук меняет только то, что показывает `Read`. Редактирование идёт по реальному JSON
+  (`Edit`/`Write` не затронуты) — если правите JSON, который только что прочитали как
+  JTF, сопоставляйте с настоящим JSON, а не с видом JTF.
+- JTF окупается на крупном или повторяющемся JSON. На маленьком или полностью уникальном
+  хук видит, что выигрыша нет, и оставляет JSON как есть.
+- `hookSpecificOutput.updatedToolOutput` требует свежей версии Claude Code. Если ваша
+  версия его не поддерживает — пользуйтесь скиллом (часть 2) и конвертируйте вручную.
